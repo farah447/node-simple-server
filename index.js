@@ -1,10 +1,11 @@
 import http from 'http';
 
-const port = 8080;
+const http = require("http");
+const PORT = '8080';
 
 let products = [
   { id: '1', title: 'apple iphone 14', price: 1320 },
-  { id: '2', title: 'apple iphone 12', price: 520 },
+  { id: '2', title: 'apple iphone 12', price: 520 }
 ];
 
 const errorHandelar = (res, statusCode, message) => {
@@ -87,5 +88,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`server is running at http://localhost:${port}`);
+  console.log(`server is running at http://localhost:${PORT}`);
 });
