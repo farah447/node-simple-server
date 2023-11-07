@@ -1,0 +1,66 @@
+openapi: 3.0.0
+
+info:
+  title: "ecommerce api"
+  description: "every thing about ecommerce"
+  version: 1.0.0
+  contact:
+    name: Example
+    email: example@example.com
+
+servers:
+  - url: http://localhost:8080
+
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - title
+        - price
+        - category
+      properties:
+        id:
+          type: string
+          description: the id of the product
+        title:
+          type: string
+          description: the title of the product
+        price:
+          type: number
+          description: the price of the product
+
+paths:
+  /products:
+    get:
+      summary: returned all the products
+      responses:
+        200:
+          description: successfully returned all the products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/componenents/schemas/Product"
+        500:
+          description: server error
+
+  /products/{productId}:
+    get:
+      summary: returned single products
+      parameters:
+        - in: path
+          name: productId
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: successfully returned single products
+          content:
+            application/json:
+              schema:
+                $ref: "#/componenents/schemas/Product"
+        500:
+          description: server error
