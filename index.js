@@ -1,83 +1,130 @@
 import http from 'http';
+import { parse } from 'querystring';
+import fs from 'fs/promises';
+import 'dotenv/config';
 
-const http = require("http");
-const PORT = '8080';
+const PORT = process.env.PORT || 3002;
 
-let products = [
-  { id: '1', title: 'apple iphone 14', price: 1320 },
-  { id: '2', title: 'apple iphone 12', price: 520 }
-];
-
-const errorHandelar = (res, statusCode, message) => {
-  res.writeHead(statusCode, { 'Content-Type': 'text/plain' });
-  res.write(message);
-  res.end();
+const errorResponse = (res, statusCode = 500, message = 'server error') => {
+  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+  res.end(
+    JSON.stringify({
+      message: message,
+    }));
 }
 
-const server = http.createServer((req, res) => {
+const successResponse = (res, statusCode, message, payload = {}) => {
+  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+  res.end(
+    JSON.stringify({
+      message: message,
+      payload: payload,
+    }));
+}
+
+const server = http.createServer(async (req, res) => {
 
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   if (req.url === '/' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.write('<h1> Hello world! </h1>')
-    res.end();
+    try {
+      successResponse(res, 200, "Hello world!!");
+    } catch (error) {
+      errorResponse(res, 500, error.message);
+    }
   }
   else if (req.url === '/products' && req.method === 'GET') {
     try {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.write(JSON.stringify(products));
-      res.end();
+      const products = JSON.parse(await fs.readFile('products.json', 'utf-8'));
+      successResponse(res, 200, "return all the products", products);
     } catch (error) {
-      errorHandelar(res, 500, 'server error');
+      errorResponse(res, 500, error.message);
     }
   }
   else if (req.url.match(/\/products\/([0-9]+)/) && req.method === 'GET') {
     try {
       const id = req.url?.split("/")[2];
+      const products = JSON.parse(await fs.readFile('products.json', 'utf-8'));
       const product = products.find((product) => product.id === id);
+      successResponse(res, 200, "return single product", products);
       if (!product) {
-        errorHandelar(res, 404, `product not found with this ${id}`);
+        errorResponse(res, 404, `product not found with this ${id}`);
         return;
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.write(JSON.stringify(product));
-      res.end();
     } catch (error) {
-      errorHandelar(res, 500, 'server error');
+      errorResponse(res, 500, error.message);
     }
   }
-  else if (req.url.match(/\/products\/([0-9]+)/) && req.method === 'POST') {
+  else if (req.url === "/products" && req.method === 'POST') {
     try {
-      const id = req.url?.split("/")[2];
-      console.log(id);
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.write('prodct is created');
-      res.end();
+      let body = '';
+      req.on('data', (chunk) => {
+        body = body + chunk;
+      });
+      req.on('end', async () => {
+        const data = parse(body);
+        console.log(data);
+        const newProduct = {
+          id: new Date().getTime().toString(),
+          title: String(data.title),
+          price: Number(data.price),
+        }
+
+        const existingProducts = JSON.parse(
+          await fs.readFile('products.json', 'utf-8')
+        );
+
+        existingProducts.push(newProduct);
+
+        await fs.writeFile("products.json", JSON.stringify(existingProducts));
+
+        successResponse(res, 201, "new product is created");
+      });
     } catch (error) {
-      errorHandelar(res, 500, 'server error');
+      errorResponse(res, 500, error.message);
     }
   }
   else if (req.url.match(/\/products\/([0-9]+)/) && req.method === 'DELETE') {
     try {
       const id = req.url?.split("/")[2];
-      console.log(id);
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.write('product is deleted');
-      res.end();
+      const products = JSON.parse(await fs.readFile('products.json', 'utf-8'));
+      const product = products.find((product) => product.id === id);
+      if (!product) {
+        errorResponse(res, 404, `product not found with this ${id}`);
+        return;
+      }
+      const filtereProducts = products.filter((product) => product.id !== id);
+      products = filtereProducts;
+      successResponse(res, 200, "product is deleted");
     } catch (error) {
-      errorHandelar(res, 500, 'server error');
+      errorResponse(res, 500, 'server error');
     }
   }
   else if (req.url.match(/\/products\/([0-9]+)/) && req.method === 'PUT') {
     try {
       const id = req.url?.split("/")[2];
-      console.log(id);
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.write('product is updated');
-      res.end();
+      const products = JSON.parse(await fs.readFile('products.json', 'utf-8'));
+      const product = products.find((product) => product.id === id);
+      if (!product) {
+        errorResponse(res, 404, `product not found with this ${id}`);
+        return;
+      }
+      let body = '';
+      req.on('data', (chunk) => {
+        body = body + chunk;
+      });
+      req.on('end', () => {
+        const updatedData = parse(body);
+        if (String(updatedData.title)) {
+          product.title = String(updatedData.title);
+        }
+        else if (Number(updatedData.price)) {
+          product.price = String(updatedData.price);
+        }
+        successResponse(res, 200, "product is updated", product);
+      });
     } catch (error) {
-      errorHandelar(res, 500, 'server error');
+      errorResponse(res, 500, error.message);
     }
   } else {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -87,6 +134,6 @@ const server = http.createServer((req, res) => {
 
 });
 
-server.listen(port, () => {
+server.listen(PORT, () => {
   console.log(`server is running at http://localhost:${PORT}`);
 });

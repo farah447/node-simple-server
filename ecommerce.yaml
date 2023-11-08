@@ -9,7 +9,7 @@ info:
     email: example@example.com
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:3002
 
 components:
   schemas:
@@ -42,7 +42,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/componenents/schemas/Product"
+                  $ref: "#/components/schemas/Product"
         500:
           description: server error
 
@@ -61,6 +61,6 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/componenents/schemas/Product"
+                $ref: "#/components/schemas/Product"
         500:
           description: server error
