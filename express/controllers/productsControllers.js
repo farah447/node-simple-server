@@ -1,5 +1,5 @@
 import fs from "fs/promises";
-import { successResponse } from "./responseControllers.js";
+import { errorResponse, successResponse } from "./responseControllers.js";
 
 let products = [
     { id: '1', title: ' product 1', price: 150 },
@@ -66,11 +66,8 @@ export const updateProduct = (req, res) => {
         errorResponse(res, 404, `product is not found with the id ${id}`);
         return;
     }
-    if (title) {
-        products[index].title = title;
-    }
-    if (price) {
-        products[index].price = price;
-    }
+    products[index].title = title ?? products[index].title;
+    products[index].price = price ?? products[index].price;
+
     successResponse(res, 200, 'product is updated', products[index]);
 }
